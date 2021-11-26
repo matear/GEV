@@ -8,4 +8,6 @@ Trying to write a paper on the topic.
 
 need to remove lmoments3
 
+and make a new plot routine
+
 
