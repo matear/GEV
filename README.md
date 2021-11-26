@@ -6,4 +6,6 @@ accurately compute a return period.
 
 Trying to write a paper on the topic.
 
+need to remove lmoments3
+
 
