@@ -20,17 +20,12 @@
 import numpy as np
 import lmoments3
 import lmoments
-import lmoments_rm as lr
+#import lmoments_rm as lr
 import scipy
 import matplotlib.pyplot as plt
 import itertools
 import xarray as xr
 from numba import jit
-
-# +
-# get variables of GEV from input
-
-
 
 # + [markdown] toc-hr-collapsed=true tags=[] jp-MarkdownHeadingCollapsed=true jp-MarkdownHeadingCollapsed=true tags=[]
 # # Cluster setup
@@ -62,6 +57,29 @@ from numba import jit
 import matplotlib.pyplot as plt
 from scipy.stats import genextreme as gev
 import numpy as np
+
+# + tags=[]
+import sys
+
+def is_interactive():
+    import __main__ as main
+    return not hasattr(main, '__file__')
+
+from sys import argv
+
+if is_interactive():
+    params = [10]
+else:
+    print(argv)
+    ss=argv[1:]
+    print(ss)
+    params = [float(i) for i in ss]
+   
+    
+print(params)
+print(is_interactive())
+
+
 
 
 # +
@@ -102,21 +120,23 @@ def gevcase(shp,loc,scl,niter,ari,n):
         pff_t[j] = gev.ppf(ari[j],shp,loc=loc,scale=scl)
 #    print(pff_t)
     sol=np.zeros([n.size,niter,nari])
+    ipar=np.zeros([n.size,niter,3])
     for l in range(n.size):
         params,pff_p = gevboot(shp,loc,scl,n[l],niter,ari)
 #        print(n[l])
 #        print(pff_p.mean(axis=0))
 #        print(pff_p.std(axis=0))
         sol[l,:,:]=pff_p[:,:]
+        ipar[l,:,:]=params[:,:]
 # return true value and array of ARI
-    return pff_t,sol
+    return pff_t,sol,ipar
 
 #@jit
-# function to do the iterations
+# function to do the iterations not used!
 def gev_it():
     for m,l in itertools.product(range(ascl.size),range(ashp.size)):
       shp=ashp[l]; scl=ascl[m]
-      pff_t,sol=gevcase(shp,loc,scl,niter,ari,n)
+      pff_t,sol,pp=gevcase(shp,loc,scl,niter,ari,n)
       print(pff_t)
       print(1/(1-ari))
       for i in range(n.size):
@@ -130,37 +150,13 @@ def gev_it():
 
 
 # +
-import sys
-
-def is_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
-
-from sys import argv
-
-if is_interactive():
-    params = [10]
-else:
-    print(argv)
-    ss=argv[1:]
-    print(ss)
-    params = [float(i) for i in ss]
-   
-    
-print(params)
-print(is_interactive())
-
-
-
-
-# +
 
 # shape, location, scale
 shp, loc, scl = -0.2, params[0], 2
 print(shp,loc,scl)
 
 niter=100
-n=np.array([50,100,500,1000, 5000])
+n=np.array([50,100,500,1000, 2000, 5000])  # sampe size
 ari=np.array([.90,.95,.98,.99,.995])  # 1 in 10,20,50,100,200
 ashp = np.array([-.5,-.4,-.2,0,.2,.4])
 ascl = np.array([1,2,3,4])
@@ -168,24 +164,31 @@ ascl = np.array([1,2,3,4])
 ashp=np.linspace(-.5,.5,11)
 ascl=np.linspace(.5,5,10)
 asol= np.zeros([ascl.size,ashp.size,n.size,ari.size])
-
+# additional storage for parameters and return levels
+tparams= np.zeros([ascl.size,ashp.size,3])
+iparams= np.zeros([ascl.size,ashp.size,n.size,niter,3])
+iret= np.zeros([ascl.size,ashp.size,n.size,niter,ari.size])
+tret= np.zeros([ascl.size,ashp.size,ari.size])
 #asol=gev_it()
 
 for m,l in itertools.product(range(ascl.size),range(ashp.size)):
     shp=ashp[l]; scl=ascl[m]
-    pff_t,sol=gevcase(shp,loc,scl,niter,ari,n)
+    tparams[m,l,:]=[loc,scl,shp]
+    pff_t,sol,pp=gevcase(shp,loc,scl,niter,ari,n)
+# store output
+    iparams[m,l,:,:,:]=pp[:,:,:]
+    tret[m,l,:]=pff_t
+    print(shp,scl,loc)
     print(pff_t)
     print(1/(1-ari))
     for i in range(n.size):
 #        print(n[i],2*sol[i,:,:].std(axis=0)/pff_t[i])
-        asol[m,l,i,:] = 2*sol[i,:,:].std(axis=0)/pff_t[i]
+        asol[m,l,i,:] = 2*sol[i,:,:].std(axis=0)/pff_t[:]
+        iret[m,l,i,:,:]=sol[i,:,:]
     plt.plot(n,asol[m,l,:,3])
     plt.xscale("log")
     plt.yscale("log")
 
-#pff_t = np.zeros([ari.size])
-#pff_p = np.zeros([niter,ari.size])
-#params=np.zeros([niter,3])
 
 
 # -
@@ -234,49 +237,65 @@ cplot3(2,4)
 aep=1/(1-ari)
 print(asol.shape,ashp.shape,ascl.shape,n.shape,ari.shape)
 
+# +
 # save output as a xarray dataset
-da = xr.DataArray(data=asol*100, dims=["scale","shape","size","ari"],
-                  coords=dict(shape=ashp, scale =ascl, size=n, ari=aep),
-                  attrs=dict(description="Return Period Uncertainty",units="percentage",),
-                 )
-ds= xr.DataArray(data=sol)
-plt.hist(ds[0,:,4])
-plt.hist(ds[4,:,4])
+npars=np.array([0,1,2])
+ds = xr.Dataset(
+     data_vars=dict( 
+         asol=(["scale","shape","size","ari"], asol*100),
+         t_params=(["scale","shape","pars"], tparams ),
+         i_params=(["scale","shape","size","iter","pars"], iparams ),
+         t_ret=(["scale","shape","ari"], tret),
+         i_ret=(["scale","shape","size","iter","ari"], iret ),
+     ),
+     coords=dict(
+         shape=ashp, scale=ascl, size=n, ari=aep,
+         pars=npars, irer=np.arange(niter),
+     ),
+     attrs=dict(description="GEV Analysis and Output"),
+     )
+
+ds.to_netcdf("loc"+str(loc)+".nc")
+
+plt.hist(ds.t_ret[4,:,4])
 print(loc)
-
-da.to_netcdf("loc"+str(loc)+".nc")
-
 
 # +
 # for shape parameter
 plt.figure(1, figsize=(10, 10))
 
-plt.subplot(221); cplot1(4)
-plt.subplot(222); cplot1(1)
-plt.subplot(223); cplot1(2)
-plt.subplot(224); cplot1(3)
+plt.subplot(221); cplot1(1)
+plt.subplot(222); cplot1(2)
+plt.subplot(223); cplot1(3)
+plt.subplot(224); cplot1(4)
 
 # +
 # for scale parameter
 plt.figure(1, figsize=(10, 10))
 
-plt.subplot(221); cplot2(0)
-plt.subplot(222); cplot2(1)
-plt.subplot(223); cplot2(2)
-plt.subplot(224); cplot2(3)
+plt.subplot(221); cplot2(1)
+plt.subplot(222); cplot2(2)
+plt.subplot(223); cplot2(3)
+plt.subplot(224); cplot2(4)
 # -
 # In the two figures above the white line denotes 10% error in ARI. For the 10% error, one needs 100s of samples and it approaches 1000s for a ARI of 1 in 100 year event.  
 
 
 for i in range(5):
-    plt.hist(sol[i,:,4])
-    print(sol[i,:,:].std(axis=0))
+    plt.hist(iret[5,6,i,:,4])
+#    print(sol[i,:,:].std(axis=0))
+#    print(sol[i,:,:].mean(axis=0))
 
 
-# + tags=[]
-da
+sol.shape
+for j in range(5):
+    mean=iret[5,6,:,:,j].mean(axis=1)
+    sd= iret[5,6,:,:,j].std(axis=1)
+    plt.plot(n,mean,'k')
+    plt.fill_between(n,mean-sd,mean+sd,alpha=0.5)
+   
 
-# + [markdown] tags=[] jp-MarkdownHeadingCollapsed=true
+# + [markdown] tags=[] jp-MarkdownHeadingCollapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
 # ## look at the shape of a GEV as a function of the 3 parameters
 
 # + tags=[]
