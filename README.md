@@ -6,11 +6,6 @@ accurately compute a return period.
 
 Trying to write a paper on the topic.
 
-need to remove lmoments3
-
-and make a new plot routine
-and test it
-
-trying git
-again
+gev1.py   iterative solves for a GEV for different sample sizes
+gev_plot.py makes some generic plots
 
