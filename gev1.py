@@ -6,9 +6,9 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.11.2
+#       jupytext_version: 1.13.0
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -293,7 +293,7 @@ for j in range(5):
     sd= iret[5,6,:,:,j].std(axis=1)
     plt.plot(n,mean,'k')
     plt.fill_between(n,mean-sd,mean+sd,alpha=0.5)
-   
+
 
 # + [markdown] tags=[] jp-MarkdownHeadingCollapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
 # ## look at the shape of a GEV as a function of the 3 parameters
