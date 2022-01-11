@@ -63,23 +63,6 @@ print(is_interactive())
 
 # The shape parameter sets determine the family of curves and the scale parameter just capture the same relationship.  As shape parameter becomes more positive the tail of the distribution shrinks and the ARI collapses, which helps make the determination easier with less samples.
 
-loc=0.0
-file1='loc0.0.nc'
-da=xr.open_dataset(file1)
-
-da
-
-# + tags=[]
-asol=da.asol    # % return value error
-t_ret=da.t_ret  # true solution
-i_ret=da.i_ret  # solution for each iteration
-aerr=i_ret.std(axis=3)/i_ret.mean(axis=3) # std/mean from iterations
-
-n=asol.coords['size'].values
-ashp=asol.coords['shape'].values*(-1)  # GEV code uses the opposite for shape parameter
-ascl=asol.coords['scale'].values
-ari=asol.coords['ari'].values
-
 # + [markdown] tags=[]
 # # Analytical relationship
 
@@ -90,7 +73,7 @@ ari=asol.coords['ari'].values
 
 # +
 loc=0; scl=1.5
-fshp=np.array([.5,.4,.2,0,-.2,-.4])*(-1)
+fshp=np.array([.5,.4,.2,0,-.2,-.4])
 r=np.linspace(0,5,100)
 
 plt.figure(figsize=(8, 11))
@@ -101,7 +84,7 @@ for i in range(fshp.size):
               loc=loc, scale=scl, )
     p=1/(1-cdf)
     yp=-np.log(cdf)
-    plt.plot(-np.log(yp),r, label=str(fshp[i]))
+    plt.plot(-np.log(yp),r, label=str(fshp[i]*(-1)))
 # could plot the returm period in non log units
 #    plt.plot((1/yp),r, label=str(fshp[i]*(-1)))
 #    plt.xscale("log")
@@ -118,7 +101,7 @@ plt.subplot(2,1,1)
 for i in range(fshp.size):
     cdf = gev.pdf(r,fshp[i], 
               loc=loc, scale=scl)
-    plt.plot(r,cdf,label=str(fshp[i]))
+    plt.plot(r,cdf,label=str(fshp[i]*(-1)))
  #   plt.xscale("log")
 #    plt.yscale("log")  
     plt.xlabel('Box value')
@@ -129,9 +112,29 @@ for i in range(fshp.size):
 
 plt.savefig('fig1.pdf',dpi=600)
 
-
 # + [markdown] tags=[]
 # # GEV analysis for sample size
+# -
+loc=10.0
+file1='loc'+str(loc)+'.nc'
+da=xr.open_dataset(file1)
+file1
+
+# + tags=[]
+da
+
+# +
+asol=da.asol    # % return value error
+t_ret=da.t_ret  # true solution
+i_ret=da.i_ret  # solution for each iteration
+aerr=i_ret.std(axis=3)/i_ret.mean(axis=3) # std/mean from iterations
+
+n=asol.coords['size'].values
+ashp=asol.coords['shape'].values*(-1)  # GEV code uses the opposite for shape parameter
+ascl=asol.coords['scale'].values
+ari=asol.coords['ari'].values
+
+
 # + tags=[]
 def cplot0(l):
 # plot holding scale constant
@@ -257,17 +260,17 @@ plt.subplot(2,2,2)
 cplot0(3)
 
 plt.subplot(2,2,4)
-cplot4(10)
+cplot4(3)
 
 
-plt.savefig('fig2.pdf',dpi=600)
+plt.savefig('fig2_'+str(loc)+'.pdf',dpi=600)
 
 # +
 l=1;m=10
 def plot_sol(l,m):
     for j in range(5):
         mean=i_ret[l,m,:,:,j].mean(axis=1)
-        sd= i_ret[l,m,:,:,j].std(axis=1)
+        sd= i_ret[l,m,:,:,j].std(axis=1)*2
         plt.plot(n,mean,'k')
         plt.fill_between(n,mean-sd,mean+sd,alpha=0.5)
         plt.title('Scale={:.1f}'.format(ascl[l])+
@@ -282,13 +285,13 @@ plt.subplot(2,2,2)
 plot_sol(1,10)
 
 plt.subplot(2,2,3)
-plot_sol(2,5)
+plot_sol(3,5)
 
 plt.subplot(2,2,4)
-plot_sol(1,1)
+plot_sol(1,0)
 
 
-plt.savefig('fig3.pdf',dpi=600)
+plt.savefig('fig3_'+str(loc)+'.pdf',dpi=600)
 
 # +
 ae=i_ret.std(axis=3)
@@ -309,53 +312,92 @@ plt.subplot(2,2,4)
 
 #(aerel[:,:,:,:].mean(axis=(0,1))).plot()
 
-plt.savefig('fig4.pdf',dpi=600)
+plt.savefig('fig4_'+str(loc)+'.pdf',dpi=600)
 
+
+# -
+
+# # Extra plotting
 
 # +
 def plothist(i,j,n):
-    print(t_ret[i,j,n].values)
+    plt.plot([t_ret[i,j,n],t_ret[i,j,n]],[0,350],color='k')
+    plt.title('scale='+str(ascl[i]))
     for m in range(6):
         plt.hist(i_ret[i,j,m,:,n])
-        print(i_ret[i,j,m,:,n].mean(axis=0).values,
-           i_ret[i,j,m,:,n].std(axis=0).values)
+#        print(i_ret[i,j,m,:,n].mean(axis=0).values,
+#           i_ret[i,j,m,:,n].std(axis=0).values)
     return
 
 plt.figure(figsize=(8, 11))
 
 plt.subplot(2,2,1)
 i=1;j=5;n=1
-plothist(1,5,1)
+plothist(1,1,1)
 
 plt.subplot(2,2,2)
-plothist(1,2,2)
+plothist(1,1,2)
 
 plt.subplot(2,2,3)
-plothist(1,10,2)
+plothist(1,1,3)
     
 plt.subplot(2,2,4)
-plothist(1,5,4)
+plothist(1,1,4)
     
-plt.savefig('fig5.pdf',dpi=600)
+plt.savefig('fig5_'+str(loc)+'.pdf',dpi=600)
+
+asol[:,1,:,2].plot()
+asol[:,1,:,2].plot.contour(levels=[10])
+rtmp[:,1,:,2].plot.contour(levels=[10],colors='white')
+
+
+# + tags=[]
+n=2;i=2
+a1=i_ret[i,1,n,:,2]*1.
+a2=a1.sortby(a1)
+
+print((a2[950]-a2[50]).values, (a1.std()*2).values)
+a2.plot()
+
+# +
+plt.figure(figsize=(8, 11))
+plt.subplot(2,2,1)
+(i_ret[:,7,0,:,3].std(axis=1)).plot()
+(i_ret[:,7,1,:,3].std(axis=1)).plot()
+(i_ret[:,7,2,:,3].std(axis=1)).plot()
+(i_ret[:,7,3,:,3].std(axis=1)).plot()
+
+plt.subplot(2,2,2)
+(t_ret[:,7,1]).plot()
+(t_ret[:,7,2]).plot()
+(t_ret[:,7,3]).plot()
+(t_ret[:,7,4]).plot()
+
+plt.subplot(2,2,3)
+(rtmp[:,7,0,3]).plot()
+(rtmp[:,7,1,3]).plot()
+(rtmp[:,7,2,3]).plot()
+(rtmp[:,7,3,3]).plot()
+
+
 # -
 
+# both the variance (first panel) and the return level value (second panel) are linear functions of scale ($\sigma$), with the return level value approaching loc value ($\mu$) as scale goes to zero.
+#
+# Hence the relative error (ratio of error to the return value) is given by 
+# $\frac{a + b \sigma}{c + d\sigma}$
+#
+# now $a \approx 0$ and $c \approx \mu$
+#
+# which simplifies to
+#
+# $\frac{b \sigma}{\mu + d \sigma} $
+#
+# for $ d \sigma $ >> $\mu$ this becomes
+# $\frac{b}{d}$, which is constant and independent of $\sigma$
+#
 
-rtmp[:,:,5,4].plot(cmap='OrRd',levels=10)
-
-il=1;m=10
-def plot_sol(l,m):
-    for j in range(5):
-        mean=i_ret[l,m,:,:,j].mean(axis=1)
-        sd= i_ret[l,m,:,:,j].std(axis=1)
-        plt.plot(n,mean,'k')
-        plt.fill_between(n,mean-sd,mean+sd,alpha=0.5)
-        plt.title('Scale={:.1f}'.format(ascl[l])+
-                    ' Shape={:.1f}'.format(ashp[m]))
-    return
- 
-
-
-# + [markdown] jp-MarkdownHeadingCollapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
+# + [markdown] jp-MarkdownHeadingCollapsed=true tags=[] jp-MarkdownHeadingCollapsed=true jp-MarkdownHeadingCollapsed=true tags=[] jp-MarkdownHeadingCollapsed=true
 # # Old figures that are not used
 
 # +
