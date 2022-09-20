@@ -10,7 +10,9 @@ gev1.py   iterative solves for a GEV for different sample sizes
 
 gev_plot.py makes some generic plots
 
-fit.py - command callable DL script to fit the data
+fit.py - my playing with least squares fit to the data but failed
+
+fit2.py - command callable DL script to fit the data
 
 ifit.py - iterative script to cycle through multiple DL setups 
 and fit the data
