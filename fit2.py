@@ -60,7 +60,7 @@ print(reg,learn,epochs,layers)
 # # Load the data 
 
 # + tags=[]
-loc=10.0
+loc=0.0
 file1='loc'+str(loc)+'.nc'
 da=xr.open_dataset(file1)
 file1
