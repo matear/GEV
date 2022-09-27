@@ -392,6 +392,17 @@ yy=yres[:,:,1]/yres[:,:,0]
 plt.contourf(yy)
 plt.colorbar()
 
+test_results
 
+import fit_lib 
+
+
+# +
+
+help(fit_lib)
+
+
+
+# -
 
 

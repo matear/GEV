@@ -5,3 +5,5 @@
    time python gev1.py 15 >& l15 &
    time python gev1.py 20 >& l20 &
    time python gev1.py 25 >! l25 &
+
+time python ifit.py >& lfit1  &

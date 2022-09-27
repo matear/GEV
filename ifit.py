@@ -35,17 +35,16 @@ sys.stdout.flush()
 #tf.config.list_physical_devices()
 
 # + tags=[]
-
-for i,l,j in itertools.product(range(9),range(9),range(2)):
+layer=[0,4,8,16,32,64]
+for i,l,m,j in itertools.product(range(5),range(5),range(6),range(2)):
     reg=j*0.001
-    layer1=4*(i+1)
-    layer2=4*(l+1)
-    astr=str(reg)+' 0.004 400 ' + str(layer1) + ' ' + str(layer2) + ' 64'
-    command=' python fit2.py  ' + astr
+    layer1=layer[i+1]
+    layer2=layer[l+1]
+    layer3=layer[m]
+    astr=str(reg)+' 0.004 400 ' + str(layer1) + ' ' + str(layer2) + ' ' + str(layer3)
+    command=' python fit2a.py  ' + astr
     print(command)
     exitCode = os.system(str(command))
-#    %run fit2.py << print(astr) 
-#0.002 0.004 400 64 64 64
 # -
 
 

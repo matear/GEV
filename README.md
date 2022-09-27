@@ -17,5 +17,8 @@ fit2.py - command callable DL script to fit the data
 ifit.py - iterative script to cycle through multiple DL setups 
 and fit the data
 
+fit_lib.py - module for fitting tools for the GEV problem
+
+
 
 
