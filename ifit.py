@@ -42,7 +42,7 @@ for i,l,m,j in itertools.product(range(5),range(5),range(6),range(2)):
     layer2=layer[l+1]
     layer3=layer[m]
     astr=str(reg)+' 0.004 400 ' + str(layer1) + ' ' + str(layer2) + ' ' + str(layer3)
-    command=' python fit2a.py  ' + astr
+    command=' python fit3.py  ' + astr
     print(command)
     exitCode = os.system(str(command))
 # -

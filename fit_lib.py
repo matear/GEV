@@ -88,7 +88,7 @@ def xroll(rtmp):
     xdata=np.zeros([nsize[0]*nsize[1]*nsize[2]*nsize[3],4])
     ydata=np.zeros([nsize[0]*nsize[1]*nsize[2]*nsize[3]])
     x1=rtmp.coords['scale'].values
-    x2=rtmp.coords['shape'].values *(-1) # convert to stand GEV convention 
+    x2=rtmp.coords['shape'].values *(-1) # convert to standard GEV convention 
     x3=rtmp.coords['size'].values
     x4=rtmp.coords['ari'].values
     l=-1
@@ -107,6 +107,27 @@ def xroll(rtmp):
     ydata=tmpy[:]/xdata[:,3]  # number of samples / ARI
 #    ydata=np.log(ydata)
 #    xdata[:,3]=np.log(xdata[:,3])
+    return xdata,ydata
+
+# create the Deep Learning data
+# predict relative error from GEV and number of samples
+def xroll1(rtmp):
+    nsize=rtmp.shape
+    xdata=np.zeros([nsize[0]*nsize[1]*nsize[2]*nsize[3],4])
+    ydata=np.zeros([nsize[0]*nsize[1]*nsize[2]*nsize[3]])
+    x1=rtmp.coords['scale'].values
+    x2=rtmp.coords['shape'].values *(-1) # convert to standard GEV convention 
+    x3=rtmp.coords['size'].values
+    x4=rtmp.coords['ari'].values
+    l=-1
+    print(x1,x2,x3,x4)
+    for i,j,k,m in itertools.product(range(nsize[0]),range(nsize[1]),range(nsize[2]),range(nsize[3])): #range(nsize[3])):
+        l=l+1 #print(i,j,k)
+        xdata[l,0]=x1[i] #np.log(x1[i])
+        xdata[l,1]=x2[j] # np.log(x2[j])
+        xdata[l,2]=x3[k]
+        xdata[l,3]=x4[m]
+        ydata[l]=rtmp[i,j,k,m].values
     return xdata,ydata
 
 def rroll(ascl,ashp,erel,eari):
