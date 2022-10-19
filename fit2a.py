@@ -43,7 +43,9 @@ def is_interactive():
 from sys import argv
 
 if is_interactive():
-    params = [0.001, 0.0042, 400, 8,16,0 ]
+    params = [0.001, 0.0042, 800, 8,16,8 ]
+#    params = [0.001, 0.0042, 400, 8,16,8 ]
+#    params = [0.0001, 0.0040, 400, 8,16,8 ]
 else:
     print(argv)
     ss=argv[1:]
@@ -175,6 +177,11 @@ print('max error',np.max(error),np.min(error))
 original_stdout = sys.stdout # Save a reference to the original standard output
 print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
 
+if ( layers.size < 3):
+    ltmp=np.append(layers,[0])
+    layers=ltmp
+#print(layers[0],layers[1],layers[2])
+
 with open('his.txt', 'a') as fout:
     sys.stdout = fout # Change the standard output to the file we created.
     print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
@@ -267,10 +274,11 @@ plt.colorbar()
 plt.figure(figsize=(10,4))
 plt.subplot(1,2,1)
 l=-1
+plt.yscale("log")  
 for i in eari:
     print(i)
     l=l+1
-    plt.plot(ashp,yres[1,:,l]*i,label=str(i)+' ARI')
+    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
 plt.title('Sampling for 10% return value uncertainty')
 plt.xlabel('Shape')
 plt.ylabel('Number of Samples')
@@ -281,5 +289,9 @@ plt.plot(ashp,(yres[1,:,:]))
 plt.xlabel('Shape')
 plt.ylabel('Number of Samples/ARI')
 # -
+yres.shape
+
+
+i
 
 

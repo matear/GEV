@@ -45,7 +45,8 @@ def is_interactive():
 from sys import argv
 
 if is_interactive():
-    params = [0.001, 0.0042, 400, 8,16,0 ]
+    params = [0.001, 0.0042, 400, 8,16,16 ]
+    params = [0.001, 0.0042, 400, 8,16,8 ]
 else:
     print(argv)
     ss=argv[1:]
@@ -147,7 +148,25 @@ print('max error',np.max(error),np.min(error))
 original_stdout = sys.stdout # Save a reference to the original standard output
 print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
 
+if ( layers.size < 3):
+    ltmp=np.append(layers,[0])
+    layers=ltmp
+#print(layers[0],layers[1],layers[2])
+
 with open('his.txt', 'a') as fout:
     sys.stdout = fout # Change the standard output to the file we created.
     print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
     sys.stdout = original_stdout # Reset the standard output to its ori
+# -
+
+s1.summary()
+
+s1.get_weights()[2]
+
+s1.weights[5]
+
+len(s1.get_weights())
+
+np.max(s1.weigths[5])
+
+
