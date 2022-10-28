@@ -156,7 +156,7 @@ shp, loc, scl = -0.2, params[0], 2
 print(shp,loc,scl)
 
 niter=1000
-n=np.array([50,100,500,1000, 2000, 5000, 10000])  # sampe size
+n=np.array([30,50,100,500,1000, 2000, 5000, 10000])  # sampe size
 ari=np.array([.90,.95,.98,.99,.995])  # 1 in 10,20,50,100,200
 ashp = np.array([-.5,-.4,-.2,0,.2,.4])
 ascl = np.array([1,2,3,4])

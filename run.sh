@@ -1,4 +1,5 @@
 # script to run the gev code to compute the desire output
+conda activate tf_xarray  # curl-hf
 #   time python gev1.py 0 >& l0 | tee l0 &
    time python gev1.py 0 >& l0 &
    time python gev1.py 10 >& l10 &
