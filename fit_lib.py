@@ -4,6 +4,8 @@
 # -
 
 import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.models import clone_model
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,13 +29,18 @@ def bc_model(norm,loss,reg,learn,layers):
     return model
 
 # fit the DL model to the data    
-def dnn(loss,reg,learn,epochs,layers,xt,yt):
+def dnn(loss,reg,learn,epochs,layers,xt,yt,n_save_after):
     normalizer = tf.keras.layers.Normalization(axis=-1)
     normalizer.adapt(np.array(xt))
     print(normalizer.mean.numpy())
-    with tf.device(dev):
-        dnn_model = bc_model(normalizer,loss,reg,learn,layers)
-        history = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=epochs)
+#    with tf.device(dev):
+    dnn_model = bc_model(normalizer,loss,reg,learn,layers)
+    history = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=epochs)
+# save the model
+    for i in range(n_save_after):
+        htmp = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=1)
+        dnn_model.save('model_' + str(i) )
+        print(htmp.history['loss'])
     
     return dnn_model,history
 
@@ -68,6 +75,55 @@ def plot_loss(history):
   plt.legend()
   plt.grid(True)
     
+### Multiple Models
+# load models from file
+def load_all_models(n_start, n_end):
+	all_models = list()
+	for epoch in range(n_start, n_end):
+		# define filename for this ensemble
+		filename = 'model_' + str(epoch)
+		# load model from file
+		model = load_model(filename)
+		# add to list of members
+		all_models.append(model)
+		print('>loaded %s' % filename)
+	return all_models
+ 
+# create a model from the weights of multiple models
+def model_weight_ensemble(loss,learn,members, weights):
+	# determine how many layers need to be averaged
+	n_layers = len(members[0].get_weights())
+	# create an set of average model weights
+	avg_model_weights = list()
+	for layer in range(n_layers):
+		# collect this layer from each model
+		layer_weights = np.array([model.get_weights()[layer] for model in members])
+		# weighted average of weights for this layer
+		avg_layer_weights = np.average(layer_weights, axis=0, weights=weights)
+		# store average layer weights
+		avg_model_weights.append(avg_layer_weights)
+	# create a new model with the same structure
+#	model = clone_model(members[0])
+	model = members[0]
+	# set the weights in the new
+	model.set_weights(avg_model_weights)
+	model.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
+	return model
+
+# evaluate a specific number of members in an ensemble
+def evaluate_n_members(members, n_members, testX, testy):
+	# select a subset of members
+	subset = members[:n_members]
+	# prepare an array of equal weights
+	weights = [1.0/n_members for i in range(1, n_members+1)]
+	# create a new model with the weighted average of all model weights
+	model = model_weight_ensemble(subset, weights)
+	# make predictions and evaluate accuracy
+	_, test_acc = model.evaluate(testX, testy, verbose=0)
+	return test_acc
+
+
+    
 #########################################
 ## Manipulate the GEV data
 # recreate the 3 d array
@@ -79,7 +135,6 @@ def unroll(yroll,rtmp):
     for i,j,k,m in itertools.product(range(1),range(nsize[1]),range(nsize[2]),range(nsize[3])):
         l=l+1 #print(i,j,k)
         atmp[i,j,k,m]=yroll[l]
-        
     return atmp
 
 # create the Deep Learning data
