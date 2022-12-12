@@ -211,7 +211,7 @@ if ( layers.size < 3):
     layers=ltmp
 #print(layers[0],layers[1],layers[2])
 
-with open('his.txt', 'a') as fout:
+with open('his1.txt', 'a') as fout:
     sys.stdout = fout # Change the standard output to the file we created.
     print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
     sys.stdout = original_stdout # Reset the standard output to its ori
@@ -244,6 +244,9 @@ test_results['small1'] = a
 print('fit=', a)
 print('max error',np.max(error),np.min(error))
 
+model.save('model_' + str(i) )
+
+
 
 # + [markdown] tags=[]
 #
@@ -258,13 +261,26 @@ atmp=fit_lib.unroll(yp,rtmp)
 btmp=fit_lib.unroll(ytmp,rtmp)
 
 ns=0; na=0
-plt.figure(figsize=(12,6))
+plt.figure(figsize=(13,6))
 plt.subplot(1,3,1)
 (atmp[ns,:,:,na]-btmp[ns,:,:,na]).plot(levels=10)
 plt.subplot(1,3,2)
 btmp[ns,:,:,na].plot(levels=10)
 plt.subplot(1,3,3)
 atmp[ns,:,:,na].plot(levels=10)
+
+# +
+#plt.plot(xtmp[0:100:5,2]) 
+ii=np.argwhere( (ytmp[:] < 1.1) &  (ytmp[:] > 0.9) )
+print(ii.size)
+plt.plot((yp[ii]))
+plt.plot(ytmp[ii])
+
+plt.plot(ytmp[ii]- yp[ii])
+#plt.ylim([19,21])
+#plt.plot(yselp[0:1000])
+#print(yp[0:100])
+# -
 
 i=np.argwhere( xtmp[:,2] < 15.0 )[:,0]
 print(i.shape)
@@ -274,6 +290,8 @@ ysel=ytmp[i]
 yselp = s1.predict(xsel).flatten()
 #plt.plot(yp,yt,'x')
 plt.plot(yselp,ysel,'o')
+plt.xlim([0, 100])
+plt.ylim([0, 100])
 
 # ##  Calculate the number of samples
 
@@ -370,9 +388,13 @@ plt.ylabel('Number of Samples/ARI')
 
 plt.savefig('figf2.png')
 # -
-da
+# dd=!date
+dd1=dd[1]
+dd2=dd1[19:25]
+print(dd2)
+model.save('model_' + str(dd2) )
 
 
 # # End 
 
-
+# # 

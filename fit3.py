@@ -132,7 +132,7 @@ seed(1)
 #layers=np.array([16,16])
 print(reg,learn,epochs,layers)
 
-s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt)
+s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, 1)
 
 # basic plotting output
 fit_lib.plot_loss(h1) 

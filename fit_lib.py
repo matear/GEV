@@ -35,7 +35,7 @@ def dnn(loss,reg,learn,epochs,layers,xt,yt,n_save_after):
     print(normalizer.mean.numpy())
 #    with tf.device(dev):
     dnn_model = bc_model(normalizer,loss,reg,learn,layers)
-    history = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=epochs)
+    history = dnn_model.fit(xt,yt,validation_split=0.7, verbose=0, epochs=epochs)
 # save the model
     for i in range(n_save_after):
         htmp = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=1)
