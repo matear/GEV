@@ -94,6 +94,11 @@ ashp=asol.coords['shape'].values*(-1)  # GEV code uses the opposite for shape pa
 ascl=asol.coords['scale'].values
 ari=asol.coords['ari'].values
 rtmp=aerr*100*2
+# redefine relative error based on the (95% - 5% / 50% ) values times 100 to get percent 
+a50=i_ret.reduce(np.percentile,axis=3,q=50)
+a5=i_ret.reduce(np.percentile,axis=3,q=5)
+a95=i_ret.reduce(np.percentile,axis=3,q=95)
+rtmp=100*((a95-a5)/a50) *.5  # to reflect +/-
 
 # + [markdown] tags=[] jp-MarkdownHeadingCollapsed=true
 # ##  Unroll the 4d rtmp into a 1d array
@@ -167,6 +172,6 @@ s1.weights[5]
 
 len(s1.get_weights())
 
-np.max(s1.weigths[5])
+np.max(s1.weights[5])
 
 
