@@ -128,7 +128,7 @@ print(xt.shape,yt.shape)
 # + tags=[]
 # #%%time
 loss='mean_squared_error'
-loss='mean_absolute_error'
+#loss='mean_absolute_error'
 seed(1)
 #reg=0.0
 #learn=0.0035
