@@ -14,12 +14,9 @@
 # ---
 
 # + [markdown] tags=[]
-# ## Callable version of a DL model to fit the GEV output
-#
-# solving the uncertainty of Return Value as a function of GEV parameters, Sample size and ARI
-#
-# -
+# ##  Used saved DL model to produce figures
 
+# + tags=[]
 import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,52 +24,16 @@ import numpy as np
 from random import sample
 import xarray as xr
 import itertools
-from numpy.random import seed
+#from numpy.random import seed
+from random import seed 
 #tf.__version__
 #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 #tf.config.list_physical_devices()
+import fit_lib 
+# -
 
 # %load_ext autoreload
 # %autoreload 2
-
-# +
-import fit_lib 
-import sys
-
-def is_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
-
-from sys import argv
-
-if is_interactive():
-    params = [1, 0.000, 0.004, 400, 8,8,8 ]
-else:
-    print(argv)
-    ss=argv[1:]
-    print(ss)
-    params = [float(i) for i in ss]
-
-if params[0] == 0:
-    loss='mean_squared_error'
-else:
-    loss='mean_absolute_error'
-    
-print('params loss,reg,learn,epochs,layers',params)
-print('loss=', loss)
-print(is_interactive())
-# -
-
-reg = params[1]*1.
-learn=params[2]*1.
-epochs=int(params[3])
-layers= np.array(params[4:]) 
-print(reg,learn,epochs,layers)
-
-# remove layers with zero nodes
-i=np.argwhere( layers[:] > 0  ) [:,0]
-ll=layers[i]
-layers=ll
 
 # # Load the data 
 
@@ -104,23 +65,23 @@ a50=i_ret.reduce(np.percentile,axis=3,q=50)
 a5=i_ret.reduce(np.percentile,axis=3,q=5)
 a95=i_ret.reduce(np.percentile,axis=3,q=95)
 rtmp=100*((a95-a5)/a50) *.5  # to reflect +/-
+# -
 
-# +
-
-print(rtmp[0,10,0,:].values)
+ns=0
+print(rtmp[ns,10,0,:].values) # estimated relative error
 for rr in range(4):
-    plt.hist(i_ret[0,10,4,:,rr],label='ARI ='+str(int((ari[rr]+.1))) )
-    plt.plot([a5[0,10,4,rr],a50[0,10,4,rr],a95[0,10,4,rr]],[rr,rr,rr],'bx-')
-    plt.title('Shape ='+str(ashp[10])+ ' Scale = ' + str(ascl[0]) )
+    plt.hist(i_ret[ns,10,4,:,rr],label='ARI ='+str(int((ari[rr]+.1))) )
+    plt.plot([a5[ns,10,4,rr],a50[ns,10,4,rr],a95[ns,10,4,rr]],[rr,rr,rr],'bx-')
+    plt.title('Shape ='+str(ashp[10])+ ' Scale = ' + str(ascl[ns]) + ' Samples = '+str(n[4]))
     plt.xlabel('Return Value')
     plt.ylabel('Number')
     plt.legend()
 #plt.hist(i_ret[0,10,4,:,1])
 #plt.plot([a5[0,10,4,1],a50[0,10,4,1],a95[0,10,4,1]],[10,10,10],'gx-')
-plt.savefig('figf3b.png')
-# -
+plt.savefig('figf0b.png')
 
-da
+ns=0
+plt.plot(rtmp[ns,10,0,:])
 
 rtmp[1,:,1,:].plot()
 
@@ -173,139 +134,92 @@ print(asol.coords['shape'].values)
 print(ashp)
 
 # using the xarray the shape coordindate has the wrong sign!
-
-# + [markdown] tags=[]
-# # Deep Learning Model 
-#
-# configure and fit
-
-# + tags=[]
-# #%%time
-loss='mean_squared_error'
-loss='mean_absolute_error'
-seed(1)
-#reg=0.0
-#learn=0.0035
-#epochs=200
-#layers=np.array([8,4,8])
-#layers=np.array([16,16])
-print(reg,learn,epochs,layers)
-n_save=1
-
-s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, n_save)
-
-# basic plotting output
-fit_lib.plot_loss(h1) 
-error=fit_lib.plot_scatter(s1,xt,yt)
-#
-a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
-print('fit=', a)
-print('max error',np.max(error),np.min(error))
-
-
-# +
-original_stdout = sys.stdout # Save a reference to the original standard output
-print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-
-if ( layers.size < 3):
-    ltmp=np.append(layers,[0])
-    layers=ltmp
-#print(layers[0],layers[1],layers[2])
-
-with open('his1.txt', 'a') as fout:
-    sys.stdout = fout # Change the standard output to the file we created.
-    print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-    sys.stdout = original_stdout # Reset the standard output to its ori
-
-# +
-#h1.history['loss'][-10:]
 # -
 
 # #  Load Multiple models 
 
+# +
+loss='mean_absolute_error'
+learn=0.004
+#loss='mean_squared_error'
+
 # load all models into memory
-members = fit_lib.load_all_models(0,n_save) # 20) #n_save)
+n_save=50 
+members = fit_lib.load_all_models('caseb4/bmodel1',0,n_save)
 print('Loaded %d models' % len(members))
 # prepare an array of equal weights
-n_models = len(members)
-weights = [1/n_models for i in range(1, n_models+1)]
-# create a new model with the weighted average of all model weights
-model = fit_lib.model_weight_ensemble(loss,learn,members, weights)
-# summarize the created model
-#model.summary()
-
-# +
-for i in range(n_save):
-    a=members[i].evaluate(xt,yt, verbose=0)
-    print(a)
-    
-a=model.evaluate(xt,yt, verbose=0)
-#a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
-print('fit=', a)
-print('max error',np.max(error),np.min(error))
-
-model.save('model_' + str(i) )
+members[0].summary()
+# -
 
 
+imember=0; a1=np.zeros(len(members))
+for n in members :
+    a1[imember]=n.evaluate(xt,yt,verbose=0)
+    print(a1[imember])
+    imember=imember+1
+
+ibest=47
+ibest=12
+ibest=44
+print(a1[ibest])
 
 # + [markdown] tags=[]
 #
 # # Useful plots of fitted model 
 
-# + tags=[]
-yp = s1.predict(xtmp).flatten()
-yp = model.predict(xtmp).flatten()
-# -
+# + [markdown] tags=[]
+# ##  Compare the DL model to the original data
 
+# + tags=[]
+yp = members[ibest].predict(xtmp).flatten()
+
+# +
 atmp=fit_lib.unroll(yp,rtmp)
 btmp=fit_lib.unroll(ytmp,rtmp)
 
-ns=0; na=0
-plt.figure(figsize=(13,6))
-plt.subplot(1,3,1)
-(atmp[ns,:,:,na]-btmp[ns,:,:,na]).plot(levels=10)
-plt.subplot(1,3,2)
-btmp[ns,:,:,na].plot(levels=10)
-plt.subplot(1,3,3)
-atmp[ns,:,:,na].plot(levels=10)
+yp1=yp.reshape([10,11,8,5])
+ytmp1=ytmp.reshape([10,11,8,5])
 
-print(xtmp.shape)
-print(xtmp[0:10,:],ytmp[0:10].T)
-plt.plot(xtmp[0:10,3],ytmp[0:10],'x')
+atmp=yp1 #+rtmp*0
+btmp=ytmp1 #+rtmp*0
+ns=1; na=4
 
+# + [markdown] tags=[]
+# ## ns=1; na=4
+# #ns=0; na=4
+# plt.figure(figsize=(13,6))
+# plt.subplot(1,3,1)
+# (atmp[ns,:,:,na]-btmp[ns,:,:,na]).plot(levels=10)
+# plt.subplot(1,3,2)
+# btmp[ns,:,:,na].plot(levels=10)
+# plt.subplot(1,3,3)
+# atmp[ns,:,:,na].plot(levels=10)
 
-# +
-#plt.plot(xtmp[0:100:5,2]) 
-ii=np.argwhere( (ytmp[:] < 100) &  (ytmp[:] > 0) )
-print(ii.size)
-plt.plot((yp[ii]))
-plt.plot(ytmp[ii])
-
-plt.plot(ytmp[ii]- yp[ii])
-#plt.ylim([19,21])
-#plt.plot(yselp[0:1000])
-#print(yp[0:100])
+# + tags=[]
+plt.contourf(atmp[ns,:,:,na]-btmp[ns,:,:,na])
+plt.colorbar()
 # -
 
-i=np.argwhere( xtmp[:,3] < 20000.0 )[:,0]
-print(i.shape)
-xsel=xtmp[i,:]
-xsel.shape
-ysel=ytmp[i]
-yselp = s1.predict(xsel).flatten()
-#plt.plot(yp,yt,'x')
-plt.plot(yselp,ysel,'o')
-plt.xlim([0, 200])
-plt.ylim([0, 200])
+# Noticed it was when sigma equalled 0.5 (first index) model was having problems fitting the data
+# same for both fits
+for ns in range(0,5):
+    plt.plot(ashp,atmp[ns,:,2,na])
+    plt.plot(ashp,btmp[ns,:,2,na],'o')
+plt.xlabel('Shape')
+plt.ylabel('Relative Error')
 
-# ##  Calculate the number of samples
+for ns in range(0,5):
+    plt.plot(atmp[ns,10,:,na])
+    plt.plot(btmp[ns,10,:,na],'o')
+plt.xlabel('Sample Index')
+plt.ylabel('Relative Error')
+
+# ##  Use the DL to Calculate the number of samples
 
 # +
 #n, ashp,ascl,ari, rtmp
 # make new dataset
-erel=np.array([500.])  # desired uncertainty o
+erel=np.array([100.])  # total number of samples
 eari=np.array([20,50,100,200]) # desired return period
 xp = fit_lib.rroll(ascl,ashp,erel,eari)
 
@@ -315,16 +229,20 @@ print(Num_samples)
 
 # -
 
-ya = s1.predict(xp).flatten()
-plt.plot(ya)
+ya = members[ibest].predict(xp).flatten()
 
 # +
+
 etmp=fit_lib.runroll(ascl,ashp,erel,eari,ya)
-print(etmp.shape)
+# dont need my own function because reshape works too.
+yres=ya.reshape([10,11,4])
+xx=xp[:,0] *1.
+xres=xx.reshape([10,11,4])
+print(etmp.shape,yres.shape)
 
 plt.figure(figsize=(10,10))
 plt.subplot(2,2,1)
-cs=plt.contourf(ashp,ascl,etmp[:,:,0,0],levels=np.arange(4,44,4),cmap='Reds',extend='both')
+cs=plt.contourf(ashp,ascl,etmp[:,:,0,0],levels=np.arange(2,44,4),cmap='Reds',extend='both')
 plt.colorbar(label='Relative Uncertainty (%)')
 plt.contour(cs,colors='k')
 plt.title('ARI=20')
@@ -332,7 +250,7 @@ plt.xlabel('Shape')
 plt.ylabel('Scale')
 
 plt.subplot(2,2,2)
-cs=plt.contourf(ashp,ascl,etmp[:,:,0,1],levels=np.arange(4,44,4),cmap='Reds',extend='both')
+cs=plt.contourf(ashp,ascl,etmp[:,:,0,1],levels=np.arange(2,44,4),cmap='Reds',extend='both')
 plt.colorbar(label='Relative Uncertainty (%)')
 plt.contour(cs,colors='k')
 plt.title('ARI=50')
@@ -340,7 +258,7 @@ plt.xlabel('Shape')
 plt.ylabel('Scale')
 
 plt.subplot(2,2,3)
-cs=plt.contourf(ashp,ascl,etmp[:,:,0,2],levels=np.arange(4,44,4),cmap='Reds',extend='both')
+cs=plt.contourf(ashp,ascl,etmp[:,:,0,2],levels=np.arange(2,44,4),cmap='Reds',extend='both')
 plt.colorbar(label='Relative Uncertainty (%)')
 plt.contour(cs,colors='k')
 plt.title('ARI=100')
@@ -348,7 +266,7 @@ plt.xlabel('Shape')
 plt.ylabel('Scale')
 
 plt.subplot(2,2,4)
-cs=plt.contourf(ashp*(1),ascl,etmp[:,:,0,3],levels=np.arange(4,44,4),cmap='Reds',extend='both')
+cs=plt.contourf(ashp*(1),ascl,etmp[:,:,0,3],levels=np.arange(2,44,4),cmap='Reds',extend='both')
 plt.title('ARI=200')
 plt.colorbar(label='Relative Uncertainty (%)')
 plt.contour(cs, colors='k')
@@ -363,19 +281,15 @@ for i in range(10):
     print(ascl[i],etmp[i,m])
 # -
 
-yres=ya.reshape([10,11,4])
-xx=xp[:,0] *1.
-xres=xx.reshape([10,11,4])
-
 #plt.pcolor(ashp,ascl,yres)
 plt.figure(figsize=(10,4))
 plt.subplot(1,2,1)
 plt.contourf(ashp,ascl,yres[:,:,2])
 plt.colorbar()
 plt.subplot(1,2,2)
-plt.contourf(ashp,ascl,yres[:,:,0])
+yy=yres[:,:,3]
+plt.contourf(ashp,ascl,yy)
 plt.colorbar()
-print(yres[0:10,:,0].mean(axis=0),yres[0:10,:,1].mean(axis=0))
 
 # +
 plt.figure(figsize=(10,4))
@@ -404,13 +318,56 @@ plt.savefig('figf2b.png')
 
 ef=np.zeros(ashp.size)+10
 # -
-# dd=!date
-dd1=dd[0]
-dd2=dd1[19:25]
-print(dd2)
-model.save('modelb_' + str(dd2) )
+# # Plot the uncertainty using all the members
+
+# +
+imember=0; a=np.zeros([len(ya),len(members)])
+print(a.shape)
 
 
-# # End 
+for n in members :
+    a[:,imember]=n.predict(xp).flatten()
+    imember=imember+1
+# -
+
+yall=a[:,:].reshape(10,11,4,50)
+yres1=yall[:,:,:,:].min(axis=3)
+yres2=yall[:,:,:,:].max(axis=3)
+yres=yall[:,:,:,ibest]
 
 
+# +
+plt.figure(figsize=(10,4))
+plt.subplot(1,2,1)
+l=-1
+#plt.yscale("linear")  
+for i in eari:
+    print(i)
+    l=l+1
+    plt.plot(ashp,yres[0:10,:,l].mean(axis=0),label=str(i)+' ARI')
+    plt.fill_between(ashp,yres1[1:10,:,l].mean(axis=0), yres2[1:10,:,l].mean(axis=0),alpha=.4)
+#    plt.plot(ashp,yres[1,:,l]*i,label=str(i)+' ARI')
+plt.title('Uncertainty for '+str(Num_samples)+' samples')
+plt.xlabel('Shape')
+plt.ylabel('Return Value relative Uncertainty (%)')
+plt.plot(ashp,np.zeros(ashp.size)+10,'--k')
+plt.legend()
+
+l=-1
+plt.subplot(1,2,2)
+plt.yscale("log")  
+for i in eari:
+    print(i)
+    l=l+1
+#plt.plot(ashp,(yres[1,:,:]))
+    plt.plot(ashp,yres[0:10,:,l].mean(axis=0), label=str(i)+' ARI')
+    plt.fill_between(ashp,yres1[0:10,:,l].mean(axis=0), yres2[0:10,:,l].mean(axis=0),alpha=.4)
+plt.title('Uncertainty for '+str(Num_samples)+' samples')
+plt.xlabel('Shape')
+plt.ylabel('Return Value relative Uncertainty (%)')
+plt.plot(ashp,np.zeros(ashp.size)+10,'--k')
+plt.legend()
+
+plt.savefig('figf3b.png')
+# -
+# # end 

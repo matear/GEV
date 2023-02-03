@@ -26,7 +26,8 @@ import numpy as np
 from random import sample
 import xarray as xr
 import itertools
-from numpy.random import seed
+#from numpy.random import seed
+from random import seed
 #tf.__version__
 #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 #tf.config.list_physical_devices()
@@ -45,24 +46,30 @@ def is_interactive():
 from sys import argv
 
 if is_interactive():
-    params = [0.001, 0.0042, 400, 8,16,16 ]
-    params = [0.001, 0.0040, 500, 8,16,8 ]
+    params = [0, 0.001, 0.0042, 400, 8,16,16 ]
+    params = [1, 0.000, 0.0040, 160, 8,16,8 ]
+    params = [1, 0.000, 0.0040, 161, 64,64,64 ]
 else:
     print(argv)
     ss=argv[1:]
     print(ss)
     params = [float(i) for i in ss]
-   
+
+if params[0] == 0:
+    loss='mean_squared_error'
+else:
+    loss='mean_absolute_error'
     
-print('params loss,reg,learn,epochs,layers',params)
+print('params ',params)
+print('loss=', loss)
 print(is_interactive())
 # -
 
-reg = params[0]*1.
-learn=params[1]*1.
-epochs=int(params[2])
-layers= np.array(params[3:]) 
-print(reg,learn,epochs,layers)
+reg = params[1]*1.
+learn=params[2]*1.
+epochs=int(params[3])
+layers= np.array(params[4:]) 
+print(reg,learn,epochs,layers,loss)
 
 # remove layers with zero nodes
 i=np.argwhere( layers[:] > 0  ) [:,0]
@@ -127,17 +134,30 @@ print(xt.shape,yt.shape)
 
 # + tags=[]
 # #%%time
-loss='mean_squared_error'
+#loss='mean_squared_error'
 #loss='mean_absolute_error'
 seed(1)
 #reg=0.0
 #learn=0.0035
-#epochs=200
+#epochs=160
 #layers=np.array([8,4,8])
 #layers=np.array([16,16])
-print(reg,learn,epochs,layers)
+print(reg,learn,epochs,layers,loss)
 
-s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, 1)
+from keras.callbacks import LearningRateScheduler
+
+def schedule(epoch,lr):
+    if epoch < 50:
+        return lr
+    elif epoch > 121:
+        return 0.0001*.1
+    else:
+        return 0.0001
+
+lr_scheduler = LearningRateScheduler(schedule,0)
+
+
+s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, 1, lr_scheduler)
 
 # basic plotting output
 fit_lib.plot_loss(h1) 
@@ -147,7 +167,43 @@ a=s1.evaluate(xt,yt, verbose=0)
 test_results['small1'] = a
 print('fit=', a)
 print('max error',np.max(error),np.min(error))
+# -
 
+
+learn=0.0001
+s1.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
+history = s1.fit(xt,yt,validation_split=0.2, verbose=0, epochs=20)
+fit_lib.plot_loss(history) 
+s1.optimizer.get_config()
+a=s1.evaluate(xt,yt, verbose=0)
+print('fit=', a)
+
+# + tags=[]
+learn=0.0001*.1
+s1.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
+history = s1.fit(xt,yt,validation_split=0.2, verbose=0, epochs=30)
+fit_lib.plot_loss(history) 
+s1.optimizer.get_config()
+a=s1.evaluate(xt,yt, verbose=0)
+print('fit=', a)
+print('save model ')
+s1.save('model_0' )
+# -
+
+error=fit_lib.plot_scatter(s1,xt,yt)
+
+# +
+aa=(s1.get_weights())
+sum=0;sum1=0
+for m in range(0,len(aa)) :
+    sum=aa[m].size +sum
+    
+for m in range(3,len(aa)) :
+    sum1=aa[m].size +sum1
+
+# total and trainable parameters
+print (sum,sum1)
+number_unknowns=sum1
 
 # +
 original_stdout = sys.stdout # Save a reference to the original standard output
@@ -160,22 +216,12 @@ if ( layers.size < 3):
 
 with open('his.txt', 'a') as fout:
     sys.stdout = fout # Change the standard output to the file we created.
-    print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
+    print(reg,learn,epochs,layers,a,np.max(error),np.min(error),number_unknowns)
     sys.stdout = original_stdout # Reset the standard output to its ori
 # -
 
 s1.summary()
 
 s1.get_weights()[2] # number of samples
-
-s1.weights[5]
-
-len(s1.get_weights())
-
-(s1.weights[2])
-
-aa=(s1.get_weights())
-
-aa
 
 

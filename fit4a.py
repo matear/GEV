@@ -14,9 +14,9 @@
 # ---
 
 # + [markdown] tags=[]
-# ## Callable version of a DL model to fit the GEV output
-# -
+# ##  Used saved DL model to produce figures
 
+# + tags=[]
 import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,52 +24,16 @@ import numpy as np
 from random import sample
 import xarray as xr
 import itertools
-from numpy.random import seed
+#from numpy.random import seed
+from random import seed 
 #tf.__version__
 #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 #tf.config.list_physical_devices()
+import fit_lib 
+# -
 
 # %load_ext autoreload
 # %autoreload 2
-
-# +
-import fit_lib 
-import sys
-
-def is_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
-
-from sys import argv
-
-if is_interactive():
-    params = [ 1, 0.000, 0.004, 400, 32,32,16 ]
-else:
-    print(argv)
-    ss=argv[1:]
-    print(ss)
-    params = [float(i) for i in ss]
-
-if params[0] == 0:
-    loss='mean_squared_error'
-else:
-    loss='mean_absolute_error'
-    
-print('params ',params)
-print('loss=', loss)
-print(is_interactive())
-# -
-
-reg = params[1]*1.
-learn=params[2]*1.
-epochs=int(params[3])
-layers= np.array(params[4:]) 
-print(reg,learn,epochs,layers)
-
-# remove layers with zero nodes
-i=np.argwhere( layers[:] > 0  ) [:,0]
-ll=layers[i]
-layers=ll
 
 # # Load the data 
 
@@ -170,60 +134,18 @@ print(asol.coords['shape'].values)
 print(ashp)
 
 # using the xarray the shape coordindate has the wrong sign!
-
-# + [markdown] tags=[]
-# # Deep Learning Model 
-#
-# configure and fit
-
-# + tags=[]
-# #%%time
-#loss='mean_squared_error'
-#loss='mean_absolute_error'
-
-seed(1)
-#reg=0.0
-#learn=0.0035
-#epochs=200
-#layers=np.array([8,4,8])
-#layers=np.array([16,16])
-print(reg,learn,epochs,layers)
-n_save=1
-
-s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, n_save)
-
-# basic plotting output
-fit_lib.plot_loss(h1) 
-error=fit_lib.plot_scatter(s1,xt,yt)
-#
-a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
-print('fit=', a)
-print('max error',np.max(error),np.min(error))
-
-
-# +
-original_stdout = sys.stdout # Save a reference to the original standard output
-print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-
-if ( layers.size < 3):
-    ltmp=np.append(layers,[0])
-    layers=ltmp
-#print(layers[0],layers[1],layers[2])
-
-with open('his1.txt', 'a') as fout:
-    sys.stdout = fout # Change the standard output to the file we created.
-    print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-    sys.stdout = original_stdout # Reset the standard output to its ori
-
-# +
-#h1.history['loss'][-10:]
 # -
 
 # #  Load Multiple models 
 
+# +
+loss='mean_absolute_error'
+learn=0.004
+#loss='mean_squared_error'
+
 # load all models into memory
-members = fit_lib.load_all_models(0,n_save)
+n_save=1 
+members = fit_lib.load_all_models('amodel1',0,n_save)
 print('Loaded %d models' % len(members))
 # prepare an array of equal weights
 n_models = len(members)
@@ -231,29 +153,83 @@ weights = [1/n_models for i in range(1, n_models+1)]
 # create a new model with the weighted average of all model weights
 model = fit_lib.model_weight_ensemble(loss,learn,members, weights)
 # summarize the created model
-#model.summary()
+model.summary()
+model.optimizer.get_config()
 
-# +
-for i in range(n_save):
-    a=members[i].evaluate(xt,yt, verbose=0)
-    print(a)
-    
+
+# + tags=[]
+#model=fit_lib.load_1_model('old_1/amodel1_9')
+#model=fit_lib.load_1_model('amodel1_0')
+model=fit_lib.load_1_model('model_0')
+
 a=model.evaluate(xt,yt, verbose=0)
-#a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
 print('fit=', a)
-print('max error',np.max(error),np.min(error))
+model.summary()
+model.optimizer.get_config()
 
-model.save('model_' + str(i) )
+# + [markdown] tags=[]
+# #
+# # solve for with reduced learning
+# learn=0.00005
+# learn=0.0001
+# #learn=0.001
+# #learn=0.0005
+# #learn=0.004
+# model.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
+# history = model.fit(xt,yt,validation_split=0.2, verbose=0, epochs=20)
+# fit_lib.plot_loss(history) 
+# model.optimizer.get_config()
+# a=model.evaluate(xt,yt, verbose=0)
+# print('fit=', a)
+# -
 
+# #
+# # reduced learing again
+# learn=0.0001
+# learn=0.00005
+# learn=0.00001*1
+# #learn=0.000001
+# model.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
+# history = model.fit(xt,yt,validation_split=0.2, verbose=0, epochs=10)
+# fit_lib.plot_loss(history) 
+# #model.optimizer.get_config()
+# a=model.evaluate(xt,yt, verbose=0)
+# print('fit=', a)
+# #print(history.history['val_loss'])
+
+# + [markdown] tags=[]
+# #### 
+# -
+
+# # turn into markdown because it is not used
+#
+# for i in range(n_save):
+#     a=members[i].evaluate(xt,yt, verbose=0)
+#     print(a)
+#     
+# a=model.evaluate(xt,yt, verbose=0)
+# #a=s1.evaluate(xt,yt, verbose=0)
+# test_results['small1'] = a
+# print('fit=', a)
+#
+# model.save('amodel_ave' )
+#
+# #print(members[1].loss)
+#
+# for i in range(0,n_save):
+#     print(i)
+#     print(members[i].loss)
+#
 
 
 # + [markdown] tags=[]
 #
 # # Useful plots of fitted model 
 
+# + [markdown] tags=[]
+# ##  Compare the DL model to the original data
+
 # + tags=[]
-yp = s1.predict(xtmp).flatten()
 yp = model.predict(xtmp).flatten()
 # -
 
@@ -287,13 +263,13 @@ print(i.shape)
 xsel=xtmp[i,:]
 xsel.shape
 ysel=ytmp[i]
-yselp = s1.predict(xsel).flatten()
+yselp = model.predict(xsel).flatten()
 #plt.plot(yp,yt,'x')
 plt.plot(yselp,ysel,'o')
 plt.xlim([0, 100])
 plt.ylim([0, 100])
 
-# ##  Calculate the number of samples
+# ##  Use the DL to Calculate the number of samples
 
 # +
 #n, ashp,ascl,ari, rtmp
@@ -306,11 +282,15 @@ print(ashp)
 
 # -
 
-ya = s1.predict(xp).flatten()
+ya = model.predict(xp).flatten()
 
 # +
 etmp=fit_lib.runroll(ascl,ashp,erel,eari,ya)
-print(etmp.shape)
+# dont need my own function because reshape works too.
+yres=ya.reshape([10,11,4])
+xx=xp[:,0] *1.
+xres=xx.reshape([10,11,4])
+print(etmp.shape,yres.shape)
 
 plt.figure(figsize=(10,10))
 plt.subplot(2,2,1)
@@ -353,18 +333,14 @@ for i in range(10):
     print(ascl[i],etmp[i,m])
 # -
 
-yres=ya.reshape([10,11,4])
-xx=xp[:,0] *1.
-xres=xx.reshape([10,11,4])
-
 #plt.pcolor(ashp,ascl,yres)
 plt.figure(figsize=(10,4))
 plt.subplot(1,2,1)
 plt.contourf(ashp,ascl,yres[:,:,2])
 plt.colorbar()
 plt.subplot(1,2,2)
-yy=yres[:,:,3]/yres[:,:,2]
-plt.contourf(yy)
+yy=yres[:,:,3]
+plt.contourf(ashp,ascl,yy)
 plt.colorbar()
 
 # +
@@ -375,7 +351,8 @@ plt.yscale("log")
 for i in eari:
     print(i)
     l=l+1
-    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
+#    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
+    plt.plot(ashp,yres[1,:,l]*i,label=str(i)+' ARI')
 plt.title('Sampling for 10% return value uncertainty')
 plt.xlabel('Shape')
 plt.ylabel('Number of Samples')
@@ -388,13 +365,4 @@ plt.ylabel('Number of Samples/ARI')
 
 plt.savefig('figf2a.png')
 # -
-# dd=!date
-dd1=dd[0]
-dd2=dd1[19:25]
-print(dd2)
-model.save('modela_' + str(dd2) )
-
-
 # # End 
-
-# # 

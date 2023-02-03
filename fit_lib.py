@@ -29,16 +29,16 @@ def bc_model(norm,loss,reg,learn,layers):
     return model
 
 # fit the DL model to the data    
-def dnn(loss,reg,learn,epochs,layers,xt,yt,n_save_after):
+def dnn(loss,reg,learn,epochs,layers,xt,yt,n_save_after,lr_scheduler):
     normalizer = tf.keras.layers.Normalization(axis=-1)
     normalizer.adapt(np.array(xt))
     print(normalizer.mean.numpy())
 #    with tf.device(dev):
     dnn_model = bc_model(normalizer,loss,reg,learn,layers)
-    history = dnn_model.fit(xt,yt,validation_split=0.7, verbose=0, epochs=epochs)
+    history = dnn_model.fit(xt,yt,validation_split=0.2, verbose=0, epochs=epochs,callbacks=[lr_scheduler])
 # save the model
     for i in range(n_save_after):
-        htmp = dnn_model.fit(xt,yt,validation_split=0.5, verbose=0, epochs=1)
+        htmp = dnn_model.fit(xt,yt,validation_split=0.2, verbose=0, epochs=1)
         dnn_model.save('model_' + str(i) )
         print(htmp.history['loss'])
     
@@ -77,17 +77,22 @@ def plot_loss(history):
     
 ### Multiple Models
 # load models from file
-def load_all_models(n_start, n_end):
+def load_all_models(basename,n_start, n_end):
 	all_models = list()
 	for epoch in range(n_start, n_end):
 		# define filename for this ensemble
-		filename = 'model_' + str(epoch)
+		filename = basename+'_' + str(epoch)
 		# load model from file
 		model = load_model(filename)
 		# add to list of members
 		all_models.append(model)
 		print('>loaded %s' % filename)
 	return all_models
+
+# load 1 model from file
+def load_1_model(filename):
+	model=load_model(filename)
+	return model
  
 # create a model from the weights of multiple models
 def model_weight_ensemble(loss,learn,members, weights):

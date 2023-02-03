@@ -14,9 +14,9 @@
 # ---
 
 # + [markdown] tags=[]
-# ## Callable version of a DL model to fit the GEV output
-# -
+# ##  Used saved DL model to produce figures
 
+# + tags=[]
 import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,52 +24,16 @@ import numpy as np
 from random import sample
 import xarray as xr
 import itertools
-from numpy.random import seed
+#from numpy.random import seed
+from random import seed 
 #tf.__version__
 #print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 #tf.config.list_physical_devices()
+import fit_lib 
+# -
 
 # %load_ext autoreload
 # %autoreload 2
-
-# +
-import fit_lib 
-import sys
-
-def is_interactive():
-    import __main__ as main
-    return not hasattr(main, '__file__')
-
-from sys import argv
-
-if is_interactive():
-    params = [ 1, 0.000, 0.004, 400, 32,32,16 ]
-else:
-    print(argv)
-    ss=argv[1:]
-    print(ss)
-    params = [float(i) for i in ss]
-
-if params[0] == 0:
-    loss='mean_squared_error'
-else:
-    loss='mean_absolute_error'
-    
-print('params ',params)
-print('loss=', loss)
-print(is_interactive())
-# -
-
-reg = params[1]*1.
-learn=params[2]*1.
-epochs=int(params[3])
-layers= np.array(params[4:]) 
-print(reg,learn,epochs,layers)
-
-# remove layers with zero nodes
-i=np.argwhere( layers[:] > 0  ) [:,0]
-ll=layers[i]
-layers=ll
 
 # # Load the data 
 
@@ -114,7 +78,7 @@ for rr in range(4):
     plt.legend()
 #plt.hist(i_ret[0,10,4,:,1])
 #plt.plot([a5[0,10,4,1],a50[0,10,4,1],a95[0,10,4,1]],[10,10,10],'gx-')
-plt.savefig('figf3a.png')
+plt.savefig('figf0a.png')
 # -
 
 da
@@ -170,130 +134,87 @@ print(asol.coords['shape'].values)
 print(ashp)
 
 # using the xarray the shape coordindate has the wrong sign!
-
-# + [markdown] tags=[]
-# # Deep Learning Model 
-#
-# configure and fit
-
-# + tags=[]
-# #%%time
-#loss='mean_squared_error'
-#loss='mean_absolute_error'
-
-seed(1)
-#reg=0.0
-#learn=0.0035
-#epochs=200
-#layers=np.array([8,4,8])
-#layers=np.array([16,16])
-print(reg,learn,epochs,layers)
-n_save=1
-
-s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, n_save)
-
-# basic plotting output
-fit_lib.plot_loss(h1) 
-error=fit_lib.plot_scatter(s1,xt,yt)
-#
-a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
-print('fit=', a)
-print('max error',np.max(error),np.min(error))
-
-
-# +
-original_stdout = sys.stdout # Save a reference to the original standard output
-print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-
-if ( layers.size < 3):
-    ltmp=np.append(layers,[0])
-    layers=ltmp
-#print(layers[0],layers[1],layers[2])
-
-with open('his1.txt', 'a') as fout:
-    sys.stdout = fout # Change the standard output to the file we created.
-    print(reg,learn,epochs,layers,a,np.max(error),np.min(error))
-    sys.stdout = original_stdout # Reset the standard output to its ori
-
-# +
-#h1.history['loss'][-10:]
 # -
 
 # #  Load Multiple models 
 
+# +
+loss='mean_absolute_error'
+learn=0.004
+#loss='mean_squared_error'
+
 # load all models into memory
-members = fit_lib.load_all_models(0,n_save)
+n_save=50 
+members = fit_lib.load_all_models('casea1/amodel1',0,n_save)
 print('Loaded %d models' % len(members))
 # prepare an array of equal weights
-n_models = len(members)
-weights = [1/n_models for i in range(1, n_models+1)]
-# create a new model with the weighted average of all model weights
-model = fit_lib.model_weight_ensemble(loss,learn,members, weights)
-# summarize the created model
-#model.summary()
-
-# +
-for i in range(n_save):
-    a=members[i].evaluate(xt,yt, verbose=0)
-    print(a)
-    
-a=model.evaluate(xt,yt, verbose=0)
-#a=s1.evaluate(xt,yt, verbose=0)
-test_results['small1'] = a
-print('fit=', a)
-print('max error',np.max(error),np.min(error))
-
-model.save('model_' + str(i) )
+members[0].summary()
+# -
 
 
+imember=0; a1=np.zeros(len(members))
+for n in members :
+    a1[imember]=n.evaluate(xt,yt,verbose=0)
+    print(a1[imember])
+    imember=imember+1
+
+
+ibest=13
+ibest=23
+print(a1[ibest])
 
 # + [markdown] tags=[]
 #
 # # Useful plots of fitted model 
 
+# + [markdown] tags=[]
+# ##  Compare the DL model to the original data
+
 # + tags=[]
-yp = s1.predict(xtmp).flatten()
-yp = model.predict(xtmp).flatten()
+yp = members[ibest].predict(xtmp).flatten()
 # -
 
+yp1=yp.reshape([10,11,8,5])
+ytmp1=ytmp.reshape([10,11,8,5])
+
+# +
 atmp=fit_lib.unroll(yp,rtmp)
 btmp=fit_lib.unroll(ytmp,rtmp)
 
-ns=0; na=0
-plt.figure(figsize=(13,6))
-plt.subplot(1,3,1)
-(atmp[ns,:,:,na]-btmp[ns,:,:,na]).plot(levels=10)
-plt.subplot(1,3,2)
-btmp[ns,:,:,na].plot(levels=10)
-plt.subplot(1,3,3)
-atmp[ns,:,:,na].plot(levels=10)
-
-# +
-#plt.plot(xtmp[0:100:5,2]) 
-ii=np.argwhere( (ytmp[:] < 1.1) &  (ytmp[:] > 0.9) )
-print(ii.size)
-plt.plot((yp[ii]))
-plt.plot(ytmp[ii])
-
-plt.plot(ytmp[ii]- yp[ii])
-#plt.ylim([19,21])
-#plt.plot(yselp[0:1000])
-#print(yp[0:100])
+atmp=yp1 #+rtmp*0
+btmp=ytmp1# +rtmp*0
+ns=1; na=4
 # -
 
-i=np.argwhere( xtmp[:,2] < 15.0 )[:,0]
-print(i.shape)
-xsel=xtmp[i,:]
-xsel.shape
-ysel=ytmp[i]
-yselp = s1.predict(xsel).flatten()
-#plt.plot(yp,yt,'x')
-plt.plot(yselp,ysel,'o')
-plt.xlim([0, 100])
-plt.ylim([0, 100])
+# ## ns=1; na=4
+# plt.figure(figsize=(13,6))
+# plt.subplot(1,3,1)
+# (atmp[ns,:,:,na]-btmp[ns,:,:,na]).plot(levels=10)
+# plt.subplot(1,3,2)
+# btmp[ns,:,:,na].plot(levels=10)
+# plt.subplot(1,3,3)
+# atmp[ns,:,:,na].plot(levels=10)
 
-# ##  Calculate the number of samples
+# + tags=[]
+plt.contourf(atmp[ns,:,:,na]-btmp[ns,:,:,na])
+plt.colorbar()
+# -
+
+# Noticed it was when sigma equalled 0.5 (first index) model was having problems fitting the data
+# same for both fits
+for ns in range(0,3):
+    plt.plot(ashp,atmp[ns,:,4,na])
+    plt.plot(ashp,btmp[ns,:,4,na],'o')
+plt.xlabel('Shape')
+plt.ylabel('Samples/ARI')
+
+for ns in range(0,5):
+    plt.plot(atmp[ns,5,:,na])
+    plt.plot(btmp[ns,5,:,na],'o')
+plt.xlabel('Sample Index')
+plt.ylabel('Samples/ARI')
+
+# ##  Use the DL to Calculate the number of samples
 
 # +
 #n, ashp,ascl,ari, rtmp
@@ -306,11 +227,15 @@ print(ashp)
 
 # -
 
-ya = s1.predict(xp).flatten()
+ya = members[ibest].predict(xp).flatten()
 
 # +
 etmp=fit_lib.runroll(ascl,ashp,erel,eari,ya)
-print(etmp.shape)
+# dont need my own function because reshape works too.
+yres=ya.reshape([10,11,4])
+xx=xp[:,0] *1.
+xres=xx.reshape([10,11,4])
+print(etmp.shape,yres.shape)
 
 plt.figure(figsize=(10,10))
 plt.subplot(2,2,1)
@@ -353,18 +278,14 @@ for i in range(10):
     print(ascl[i],etmp[i,m])
 # -
 
-yres=ya.reshape([10,11,4])
-xx=xp[:,0] *1.
-xres=xx.reshape([10,11,4])
-
 #plt.pcolor(ashp,ascl,yres)
 plt.figure(figsize=(10,4))
 plt.subplot(1,2,1)
 plt.contourf(ashp,ascl,yres[:,:,2])
 plt.colorbar()
 plt.subplot(1,2,2)
-yy=yres[:,:,3]/yres[:,:,2]
-plt.contourf(yy)
+yy=yres[:,:,3]
+plt.contourf(ashp,ascl,yy)
 plt.colorbar()
 
 # +
@@ -375,7 +296,8 @@ plt.yscale("log")
 for i in eari:
     print(i)
     l=l+1
-    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
+#    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
+    plt.plot(ashp,yres[1,:,l]*i,label=str(i)+' ARI')
 plt.title('Sampling for 10% return value uncertainty')
 plt.xlabel('Shape')
 plt.ylabel('Number of Samples')
@@ -388,13 +310,53 @@ plt.ylabel('Number of Samples/ARI')
 
 plt.savefig('figf2a.png')
 # -
-# dd=!date
-dd1=dd[0]
-dd2=dd1[19:25]
-print(dd2)
-model.save('modela_' + str(dd2) )
+# # Plot the uncertainty using all the members
+
+# +
+imember=0; a=np.zeros([len(ya),len(members)])
+print(a.shape)
 
 
-# # End 
+for n in members :
+    a[:,imember]=n.predict(xp).flatten()
+    imember=imember+1
+# -
 
-# # 
+yall=a[:,:].reshape(10,11,4,50)
+yres1=yall[:,:,:,:].min(axis=3)
+yres2=yall[:,:,:,:].max(axis=3)
+yres=yall[:,:,:,ibest]
+
+
+# +
+plt.figure(figsize=(10,4))
+plt.subplot(1,2,1)
+l=-1
+plt.yscale("log")  
+for i in eari:
+    print(i)
+    l=l+1
+    plt.plot(ashp,yres[0:10,:,l].mean(axis=0)*i,label=str(i)+' ARI')
+    plt.fill_between(ashp,yres1[0:10,:,l].mean(axis=0)*i, yres2[0:10,:,l].mean(axis=0)*i,alpha=.4)
+#    plt.plot(ashp,yres[1,:,l]*i,label=str(i)+' ARI')
+plt.title('Sampling for 10% return value uncertainty')
+plt.xlabel('Shape')
+plt.ylabel('Number of Samples')
+plt.legend()
+
+l=-1
+plt.subplot(1,2,2)
+for i in eari:
+    print(i)
+    l=l+1
+#plt.plot(ashp,(yres[1,:,:]))
+    plt.plot(ashp,yres[0:10,:,l].mean(axis=0), label=str(i)+' ARI')
+    plt.fill_between(ashp,yres1[0:10,:,l].mean(axis=0), yres2[0:10,:,l].mean(axis=0),alpha=.4)
+plt.title('Sampling for 10% return value uncertainty')
+plt.xlabel('Shape')
+plt.ylabel('Number of Samples/ARI')
+plt.legend()
+
+plt.savefig('figf3a.png')
+# -
+# # end 
