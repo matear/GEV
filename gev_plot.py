@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.13.0
+#       jupytext_version: 1.14.0
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -18,14 +18,14 @@
 
 # + Collapsed="false" tags=[]
 import numpy as np
-import lmoments3
-import lmoments
+#import lmoments3
+#import lmoments
 #import lmoments_rm as lr
 import scipy
 import matplotlib.pyplot as plt
 import itertools
 import xarray as xr
-from numba import jit
+#from numba import jit
 
 # + [markdown] tags=[]
 # # Scipy version
@@ -72,7 +72,7 @@ print(is_interactive())
 #
 
 # +
-loc=0; scl=1.5
+loc=0; scl=1.0
 fshp=np.array([.5,.4,.2,0,-.2,-.4])
 r=np.linspace(0,5,100)
 
@@ -92,8 +92,8 @@ for i in range(fshp.size):
 #    plt.yscale("log")
     plt.xlim(0,3)
     plt.ylabel('Return value')
-    plt.xlabel('Log of Return Interval')
-#   plt.ylim(1,500)
+    plt.xlabel('Log of -log(CDF)')
+#    plt.ylim(1,500)
     plt.legend(loc='upper left')
 
     
@@ -106,11 +106,18 @@ for i in range(fshp.size):
 #    plt.yscale("log")  
     plt.xlabel('Box value')
     plt.ylabel('Probability')
-    plt.xlim(0,5)
+    plt.xlim(0,3)
     plt.legend(loc='upper right')
     
 
 plt.savefig('fig1.pdf',dpi=600)
+
+# +
+#cdf = gev.cdf(r,0,  loc=loc, scale=scl, )
+#p=1/(1-cdf)
+#print(r,p)
+
+
 
 # + [markdown] tags=[]
 # # GEV analysis for sample size

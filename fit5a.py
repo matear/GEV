@@ -227,6 +227,9 @@ print(ashp)
 
 # -
 
+print(xp.shape)
+print(xp[0:10,:])
+
 ya = members[ibest].predict(xp).flatten()
 
 # +
@@ -359,4 +362,144 @@ plt.legend()
 
 plt.savefig('figf3a.png')
 # -
+# # Compute the sample size for a rainfall and temperature extreme examples
+#
+# for the calculation I will use the models but account for non-zero location and scale parameters by normalising to scale and correcting relative error using location 
+
+# +
+from scipy.stats import genextreme as gev
+# make new dataset with ns x 4G
+# rainfall example shape=0 and 0.25. mu' = 3 scale=1
+# temperature example shape=-0.2 mu' = 13.2 scale = 1
+scl1=np.array([1]); shp1=np.array([0, .25])
+loc=3
+
+erel=np.array([10.])  # desired uncertainty o
+eari=np.array([20,50,100,200]) # desired return period
+#eari=np.arange(10,200,2) # desired return period
+
+xp = fit_lib.rroll(scl1,shp1,erel,eari)
+
+inv_ari = 1./ xp[:,3]
+shpa= -1*xp[:,1]
+scla= xp[:,0]
+
+R0 = gev.isf(inv_ari, shpa,0,scla)
+Rm = gev.isf(inv_ari, shpa,loc,scla)
+
+E_Rm = xp[:,2]* (Rm/R0)
+xp[:,2]=E_Rm
+
+print (R0)
+print (Rm)
+print (E_Rm)
+print (xp)
+
+# -
+
+ya = members[ibest].predict(xp).flatten()
+print(ya)
+print(ya*xp[:,3]) # convert into number of samples by multiplying by ARI
+ya_rain=np.copy(ya)
+
+# +
+imember=0; a=np.zeros([len(ya),len(members)])
+print(a.shape)
+
+for n in members :
+    a[:,imember]=n.predict(xp).flatten()
+    imember=imember+1
+# -
+
+yall=np.copy(a[:,:])
+y_rain1=yall[:,:].min(axis=1)
+y_rain2=yall[:,:].max(axis=1)
+y_rain=yall[:,ibest]
+
+# +
+# make new dataset with ns x 4G
+# rainfall example shape=0 and 0.25. mu' = 3 scale=1
+# temperature example shape=-0.2 mu' = 13.2 scale = 1
+scl1=np.array([1]); shp1=np.array([-.2,-.10])
+loc=13.2
+erel=np.array([3.])  # desired uncertainty o
+eari=np.array([20,50,100,200]) # desired return period
+
+xp = fit_lib.rroll(scl1,shp1,erel,eari)
+
+inv_ari = 1./ xp[:,3]
+shpa= -1*xp[:,1]
+scla= xp[:,0]
+
+R0 = gev.isf(inv_ari, shpa,0,scla)
+Rm = gev.isf(inv_ari, shpa,loc,scla)
+
+E_Rm = xp[:,2]* (Rm/R0)
+xp[:,2]=E_Rm
+
+print (R0)
+print (Rm)
+print (E_Rm)
+print (xp)
+
+# -
+
+ya = members[ibest].predict(xp).flatten()
+print(ya)
+print(ya*xp[:,3]) # convert into number of samples by multiplying by ARI
+
+# +
+imember=0; a=np.zeros([len(ya),len(members)])
+print(a.shape)
+
+for n in members :
+    a[:,imember]=n.predict(xp).flatten()
+    imember=imember+1
+# -
+
+yall=np.copy(a[:,:])
+y_temp1=yall[:,:].min(axis=1)
+y_temp2=yall[:,:].max(axis=1)
+y_temp=np.median(yall,axis=1) 
+y_temp=yall[:,ibest]
+
+# +
+plt.figure(figsize=(8.2,5))
+
+plt.subplot(1,2,1)
+plt.plot(eari,y_rain[0:np.size(eari)]*eari,label="Shape="+str(0))
+plt.fill_between(eari,y_rain1[0:4]*eari, y_rain2[0:4]*eari,alpha=.4)
+plt.plot(eari,y_rain[np.size(eari)-1:-1]*eari,label="Shape="+str(0.25))
+plt.fill_between(eari,y_rain1[np.size(eari)-1:-1]*eari, y_rain2[np.size(eari)-1:-1]*eari,alpha=.4)
+plt.xlabel("Annual Return Period")
+plt.ylabel("Sample Size")
+plt.title("Rainfall Extreme")
+plt.legend()
+
+plt.subplot(1,2,2)
+
+#plt.plot(eari,np.rint(ya_temp[0:np.size(eari)]*eari),label="Shape="+str(-0.2))
+plt.plot(eari,np.rint(y_temp[0:np.size(eari)]*eari),label="Shape="+str(shp1[0]))
+plt.fill_between(eari,y_temp1[0:4]*eari, y_temp2[0:4]*eari,alpha=.4)
+plt.plot(eari,np.rint(y_temp[np.size(eari)-1:-1]*eari),label="Shape="+str(shp1[1]))
+plt.fill_between(eari,y_temp1[np.size(eari)-1:-1]*eari, y_temp2[np.size(eari)-1:-1]*eari,alpha=.4)
+plt.xlabel("Annual Return Period")
+plt.ylabel("Sample Size")
+plt.title("Temperature Extreme")
+#plt.ylim(0,110)
+plt.legend()
+
+plt.savefig('figf4a.pdf',dpi=600)
+
+
+# -
+
 # # end 
+
+y_temp
+
+np.median(yall,axis=1)
+
+
+
+

@@ -147,16 +147,48 @@ print(reg,learn,epochs,layers,loss)
 from keras.callbacks import LearningRateScheduler
 
 def schedule(epoch,lr):
-    if epoch < 50:
+    if epoch < 25:  # 50:
         return lr
-    elif epoch > 121:
-        return 0.0001*.1
+    elif epoch > 101: #131:
+        return 0.0001*.2
     else:
         return 0.0001
 
 lr_scheduler = LearningRateScheduler(schedule,0)
 
 
+s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, 1, lr_scheduler)
+
+# basic plotting output
+fit_lib.plot_loss(h1) 
+error=fit_lib.plot_scatter(s1,xt,yt)
+#
+a=s1.evaluate(xt,yt, verbose=0)
+test_results['small1'] = a
+print('fit=', a)
+print('max error',np.max(error),np.min(error))
+# -
+
+
+# ### Try out the cyclic learning rate 
+
+# + tags=[]
+#reg=0.0
+#learn=0.0035
+#epochs=160
+print(reg,learn,epochs,layers,loss)
+
+from keras.callbacks import LearningRateScheduler
+
+def schedule(epoch,lr):
+    if epoch < 25:  # 50:
+        return lr
+    elif epoch > 101: #131:
+        return 0.0001*.2
+    else:
+        return 0.0001
+
+lr_scheduler = LearningRateScheduler(schedule,0)
 s1,h1=fit_lib.dnn(loss,reg,learn,epochs,layers, xt,yt, 1, lr_scheduler)
 
 # basic plotting output
@@ -179,7 +211,7 @@ a=s1.evaluate(xt,yt, verbose=0)
 print('fit=', a)
 
 # + tags=[]
-learn=0.0001*.1
+learn=0.0001*.1*.2*.3#*.4
 s1.compile(loss=loss,  optimizer=tf.keras.optimizers.Adam(learn) )
 history = s1.fit(xt,yt,validation_split=0.2, verbose=0, epochs=30)
 fit_lib.plot_loss(history) 
