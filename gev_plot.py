@@ -111,8 +111,8 @@ for i in range(fshp.size):
     
 
 plt.savefig('fig1.pdf',dpi=600)
+# -
 
-# +
 #cdf = gev.cdf(r,0,  loc=loc, scale=scl, )
 #p=1/(1-cdf)
 #print(r,p)
@@ -123,6 +123,7 @@ plt.savefig('fig1.pdf',dpi=600)
 # # GEV analysis for sample size
 # -
 loc=10.0
+loc=0.0
 file1='loc'+str(loc)+'.nc'
 da=xr.open_dataset(file1)
 file1
@@ -274,28 +275,30 @@ plt.savefig('fig2_'+str(loc)+'.pdf',dpi=600)
 
 # +
 l=1;m=10
-def plot_sol(l,m):
+def plot_sol(l,m,ql):
     for j in range(5):
         mean=i_ret[l,m,:,:,j].mean(axis=1)
         sd= i_ret[l,m,:,:,j].std(axis=1)*2
         plt.plot(n,mean,'k')
-        plt.fill_between(n,mean-sd,mean+sd,alpha=0.5)
+        plt.fill_between(n,mean-sd,mean+sd,alpha=0.5,label=str(int(ari[j]+.5)))
         plt.title('Scale={:.1f}'.format(ascl[l])+
                     ' Shape={:.1f}'.format(ashp[m]))
+    if ql >0 :
+        plt.legend(loc='upper right')
     return
  
 plt.figure(figsize=(8, 11))
 plt.subplot(2,2,1)
-plot_sol(1,5)
+plot_sol(1,5,1)
 
 plt.subplot(2,2,2)
-plot_sol(1,10)
+plot_sol(1,10,0)
 
 plt.subplot(2,2,3)
-plot_sol(3,5)
+plot_sol(3,5,1)
 
 plt.subplot(2,2,4)
-plot_sol(1,0)
+plot_sol(1,0,0)
 
 
 plt.savefig('fig3_'+str(loc)+'.pdf',dpi=600)
@@ -320,18 +323,26 @@ plt.subplot(2,2,4)
 #(aerel[:,:,:,:].mean(axis=(0,1))).plot()
 
 plt.savefig('fig4_'+str(loc)+'.pdf',dpi=600)
-
-
 # -
 
 # # Extra plotting
 
+print(str(int(da.size[1])))
+da.size
+i_ret.shape
+
+i_ret
+
+
 # +
 def plothist(i,j,n):
     plt.plot([t_ret[i,j,n],t_ret[i,j,n]],[0,350],color='k')
-    plt.title('scale='+str(ascl[i]))
-    for m in range(6):
-        plt.hist(i_ret[i,j,m,:,n])
+    plt.title('scale='+str(ascl[i])+' RI='+str(int(ari[n]+.5)))
+    for m in range(5):
+        plt.hist(i_ret[i,j,m,:,n],label=str(int(da.size[m]+.5)))
+        
+#    if ql >0 :
+    plt.legend(loc='upper right')
 #        print(i_ret[i,j,m,:,n].mean(axis=0).values,
 #           i_ret[i,j,m,:,n].std(axis=0).values)
     return
@@ -340,22 +351,22 @@ plt.figure(figsize=(8, 11))
 
 plt.subplot(2,2,1)
 i=1;j=5;n=1
-plothist(1,1,1)
+plothist(i,j,1)
 
 plt.subplot(2,2,2)
-plothist(1,1,2)
+plothist(i,j,2)
 
 plt.subplot(2,2,3)
-plothist(1,1,3)
+plothist(i,j,3)
     
 plt.subplot(2,2,4)
-plothist(1,1,4)
+plothist(i,j,4)
     
 plt.savefig('fig5_'+str(loc)+'.pdf',dpi=600)
 
-asol[:,1,:,2].plot()
-asol[:,1,:,2].plot.contour(levels=[10])
-rtmp[:,1,:,2].plot.contour(levels=[10],colors='white')
+#asol[:,1,:,2].plot()
+#asol[:,1,:,2].plot.contour(levels=[10])
+#rtmp[:,1,:,2].plot.contour(levels=[10],colors='white')
 
 
 # + tags=[]
@@ -409,46 +420,8 @@ plt.subplot(2,2,3)
 
 # +
 #cplot3(1,6)
-
-# +
-# for shape parameter
-plt.figure(1, figsize=(10, 10))
-
-plt.subplot(221); cplot1(1,1)
-plt.subplot(222); cplot1(1,2)
-plt.subplot(223); cplot1(1,3)
-plt.subplot(224); cplot1(1,4)
-
-# +
-# Example figure
-plt.figure(figsize=(10, 10))
-plt.subplot(2,2,1)
-# global
-tl1='Natural'
-tl2="Total"
-t1='Global'
-flxplt(totd*(-1e-15),tota*(-1e-15),gstd_d.std(axis=1)*1e-15,gstd_a.std(axis=1)*1e-15)
-plt.subplot(2,2,2)
-t1='Southern Ocean'
-flxplt(totsd*(-1e-15),totsa*(-1e-15),sstd_d.std(axis=1)*1e-15,sstd_a.std(axis=1)*1e-15)
-
-plt.subplot(2,2,4)
-plt.xlim(1982,2020)
-plt.ylim(-2.5,0)
-t1='Southern Ocean'
-flxplt(totsd*(-1e-15)*0,totsa*(-1e-15),sstd_d.std(axis=1)*1e-15*0,sstd_a.std(axis=1)*1e-15)
-
-plt.plot(time2,sflx.sum(axis=(1,2)).rolling(mtime=365, center=True).mean(),color='blue')
-
-plt.savefig('fco2.pdf',dpi=600)
-
-# +
-# for scale parameter
-plt.figure(1, figsize=(10, 10))
-
-plt.subplot(221); cplot2(5,1)
-plt.subplot(222); cplot2(5,2)
-plt.subplot(223); cplot2(5,3)
-plt.subplot(224); cplot2(5,4)
 # -
+
 # In the two figures above the white line denotes 10% error in ARI. For the 10% error, one needs 100s of samples and it approaches 1000s for a ARI of 1 in 100 year event.  
+
+
